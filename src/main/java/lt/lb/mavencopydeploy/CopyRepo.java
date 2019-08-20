@@ -5,16 +5,18 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Objects;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import lt.lb.commons.ArrayOp;
+import lt.lb.commons.Java;
 import lt.lb.commons.Log;
 import lt.lb.commons.func.unchecked.UnsafeRunnable;
 import lt.lb.commons.iteration.ReadOnlyIterator;
-import lt.lb.commons.jobs.Dependency;
 import lt.lb.commons.jobs.Job;
 import lt.lb.commons.jobs.JobEvent;
 import lt.lb.commons.jobs.JobEventListener;
@@ -43,9 +45,12 @@ public class CopyRepo {
     }
 
     public static void copyRepo(Args arg) throws IOException, InterruptedException, TimeoutException {
-        arg.localPath = StringOp.appendIfMissing(arg.localPath, File.separator);
+
+        Objects.requireNonNull(arg.destUrl);
+
+        arg.localPath = StringOp.appendIfMissing(arg.localPath, Java.getFileSeparator());
         arg.destUrl = StringOp.appendIfMissing(arg.destUrl, "/");
-        
+
         Files.createDirectories(Paths.get(arg.localPath));
 
         Main.Cred cred = new Main.Cred(arg.userSrc, arg.paswSrc);
@@ -67,42 +72,33 @@ public class CopyRepo {
 
         long fileNum = 0;
 
-        AtomicLong localCount = new AtomicLong();
+        Stream<DownloadArtifact> filter = allArtifactsFromRepo
+                .toStream()
+                .filter(art -> !art.getDownloadURL().endsWith("md5") || art.getDownloadURL().endsWith("sha1"));
 
-        for (final DownloadArtifact artifactDown : allArtifactsFromRepo) {
-            if(artifactDown.getDownloadURL().endsWith("md5")){
-                continue;
-            }
-            if(artifactDown.getDownloadURL().endsWith("sha1")){
-                continue;
-            }
+        for (final DownloadArtifact artifactDown : ReadOnlyIterator.of(filter)) {
+            String relativePath = artifactDown.getRelativePath();
             final Path path = Paths.get(arg.localPath + fileNum);
             fileNum++;
-            Job jobDownload = new Job("download-" + fileNum, j -> {
+            Job jobDownload = new Job("download " + fileNum + " @" + relativePath, j -> {
                 Future downloadFile = clientSrcs.downloadFile(artifactDown.getDownloadURL(), path);
                 downloadFile.get();
-                localCount.incrementAndGet();
+
                 return null;
             });
-            
-            Runnable uploadRunnable = ()->{
+
+            Job jobUpload = new Job("upload " + fileNum + " @" + relativePath, j -> {
                 String where = path.toAbsolutePath().toString();
                 String url = arg.destUrl + artifactDown.getRelativePath();
                 deploy.executeCurlUpload(arg.userDst, arg.paswDst, where, url);
-            };
-            UnsafeRunnable withTimeoutRepeatUntilDone = RunnableDecorators.withTimeoutRepeatUntilDone(WaitTime.ofMinutes(5), uploadRunnable);
-            Job jobUpload = new Job("upload-" + fileNum,j->{
-                withTimeoutRepeatUntilDone.unsafeRun();
                 return null;
             });
 
-            Job jobDelete = new Job("delete-" + fileNum, j -> {
+            Job jobDelete = new Job("delete " + fileNum + " @" + relativePath, j -> {
                 Files.delete(path);
-                localCount.decrementAndGet();
                 return null;
             });
 
-            jobDownload.addDependency(() -> localCount.get() < 500);
             jobDownload.chainForward(jobUpload);
             jobDownload.chainForward(jobDelete); //cancel if failed
 
@@ -123,7 +119,7 @@ public class CopyRepo {
             JobEventListener jobEventListener = (JobEvent event) -> {
                 event.getData().filter(m -> m instanceof Throwable).map(m -> (Throwable) m).ifPresent(c -> c.printStackTrace());
             };
-            
+
             Job[] arr = ArrayOp.asArray(jobDownload, jobUpload, jobDelete);
 
             jobDecorate(j -> j.addListener(JobEvent.ON_FAILED, jobEventListener), arr);
@@ -133,6 +129,10 @@ public class CopyRepo {
             executor.submit(jobDownload);
             executor.submit(jobUpload);
             executor.submit(jobDelete);
+            
+            if(fileNum % 500 == 0){
+                executor.awaitJobEmptiness(WaitTime.ofDays(100));
+            }
 
         }
         executor.shutdown();
