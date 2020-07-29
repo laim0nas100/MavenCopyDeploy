@@ -1,21 +1,13 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package lt.lb.mavencopydeploy.net;
 
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
-import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
-import java.util.concurrent.FutureTask;
 import java.util.function.Consumer;
 import lt.lb.commons.F;
 import lt.lb.commons.iteration.ReadOnlyIterator;
-import lt.lb.commons.threads.Futures;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.ConnectionPool;
@@ -27,7 +19,7 @@ import okio.Okio;
 
 /**
  *
- * @author Lemmin
+ * @author laim0nas100
  */
 public abstract class BaseClient {
     protected OkHttpClient client;

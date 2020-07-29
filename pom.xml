@@ -20,14 +20,20 @@
         <dependency>
             <groupId>com.github.laim0nas100.Commons</groupId>
             <artifactId>commonslb-log</artifactId>
-            <version>337514a134e0a47c260f99924c12ffe0993f5758</version>
+            <version>aafe5023bea64d6d423217dc580c22db4e657889</version>
+            <type>jar</type>
+        </dependency>
+        <dependency>
+            <groupId>com.github.laim0nas100.Commons</groupId>
+            <artifactId>commonslb-io</artifactId>
+            <version>aafe5023bea64d6d423217dc580c22db4e657889</version>
             <type>jar</type>
         </dependency>
         
         <dependency>
-            <groupId>com.github.laim0nas100.Commons</groupId>
-            <artifactId>commonslb-jobs</artifactId>
-            <version>337514a134e0a47c260f99924c12ffe0993f5758</version>
+            <groupId>com.github.laim0nas100</groupId>
+            <artifactId>JobSystem</artifactId>
+            <version>1f5857c238bf430233df3386cec3f198f92b3e80</version>
             <type>jar</type>
         </dependency>
         

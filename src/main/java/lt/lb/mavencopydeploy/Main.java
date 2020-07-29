@@ -1,13 +1,10 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package lt.lb.mavencopydeploy;
 
 import com.beust.jcommander.JCommander;
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
+import lt.lb.commons.Log;
 
 /**
  *
@@ -28,7 +25,7 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) throws IOException, InterruptedException, TimeoutException {
+    public static void main(String[] args) throws IOException, InterruptedException, TimeoutException, ExecutionException {
 
         Args arg = new Args();
         JCommander build = JCommander.newBuilder()
@@ -42,8 +39,14 @@ public class Main {
             build.usage();
             return;
         }
+        if(arg.doCompare){
+            CompareRepo.compare(arg);
+        }else{
+            CopyRepo.copyRepo(arg);
+        }
         
-        CopyRepo.copyRepo(arg);
+        
+        Log.close();
 
         
     }

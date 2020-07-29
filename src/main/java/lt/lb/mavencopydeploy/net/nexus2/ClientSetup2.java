@@ -26,7 +26,6 @@ import okhttp3.Response;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import lt.lb.commons.ArrayOp;
-import lt.lb.commons.ReflectionUtils;
 import lt.lb.commons.containers.values.Value;
 import lt.lb.commons.iteration.ChildrenIteratorProvider;
 import lt.lb.commons.iteration.ReadOnlyIterator;
@@ -37,7 +36,7 @@ import org.w3c.dom.NodeList;
 
 /**
  *
- * @author Lemmin
+ * @author laim0nas100
  */
 public class ClientSetup2 extends BaseClient {
 
@@ -57,38 +56,6 @@ public class ClientSetup2 extends BaseClient {
         };
         connectionPool = new ConnectionPool(Integer.MAX_VALUE, 5000, TimeUnit.DAYS);
         client = new OkHttpClient.Builder().connectionPool(connectionPool).addInterceptor(interceptor).build();
-    }
-
-    public static void main(String... args) throws IOException {
-        ClientSetup2 set = new ClientSetup2(new Cred("admin", "admin123"));
-        Log.main().async = false;
-
-        ReadOnlyIterator<ArtifactType2> artifacts = set.getArtifacts("http://localhost:8082/nexus/service/local/repositories/test/content/");
-        for (ArtifactType2 art : artifacts) {
-            Log.print(ReflectionUtils.reflectionString(art, 1));
-        }
-//        set.getUrlAndWait("http://localhost:8082/nexus/service/local/repositories/test/content/", resp -> {
-//            String xml = F.unsafeCall(() -> resp.body().string());
-//            Log.print(xml);
-//            F.unsafeRun(() -> {
-//                DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance()
-//                        .newDocumentBuilder();
-//
-//                Document doc = dBuilder.parse(new ByteArrayInputStream(xml.getBytes()));
-//                ArrayList<Node> content = toList(doc.getElementsByTagName("content-item"));
-//                Log.print("Parsed");
-//                for (Node node : content) {
-//                    Log.print(getValue(node, "resourceURI"), getValue(node, "leaf"));
-//                }
-//
-//            });
-//
-//        });
-        
-        
-
-        set.close();
-        Log.close();
     }
 
     public static ArrayList<Node> toList(NodeList nodes) {
