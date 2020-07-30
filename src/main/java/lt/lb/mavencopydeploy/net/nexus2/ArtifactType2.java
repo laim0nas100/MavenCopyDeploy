@@ -2,7 +2,7 @@ package lt.lb.mavencopydeploy.net.nexus2;
 
 /**
  *
- * @author Lemmin
+ * @author laim0nas100
  */
 public class ArtifactType2 {
     

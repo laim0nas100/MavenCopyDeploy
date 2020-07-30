@@ -1,5 +1,6 @@
 package lt.lb.mavencopydeploy.net;
 
+import java.util.List;
 import lt.lb.commons.parsing.StringOp;
 
 /**
@@ -30,6 +31,29 @@ public class DownloadArtifact {
 
     public void setRelativePath(String relativePath) {
         this.relativePath = relativePath;
+    }
+    
+    public boolean include(List<String> ends){
+        if(ends.isEmpty()){
+            return true;
+        }
+        return endsWithAny(ends);
+    }
+    
+    public boolean exclude(List<String> ends){
+        if(ends.isEmpty()){
+            return true;
+        }
+        return endsWithAny(ends);
+    }
+    
+    public boolean endsWithAny(List<String> ends){
+        for(String end:ends){
+            if(StringOp.endsWith(this.relativePath, end)){
+                return true;
+            }
+        }
+        return false;
     }
     
     

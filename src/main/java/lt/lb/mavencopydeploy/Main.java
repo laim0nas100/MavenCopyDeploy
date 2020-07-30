@@ -1,32 +1,24 @@
 package lt.lb.mavencopydeploy;
 
 import com.beust.jcommander.JCommander;
-import java.io.IOException;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeoutException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import lt.lb.commons.Log;
+import lt.lb.mavencopydeploy.net.BaseClient;
 
 /**
  *
  * @author laim0nas100
  */
 public class Main {
+    
+    static List<BaseClient> openedClients = new ArrayList<>();
 
-    public static class Cred {
+    public static void main(String[] args) throws Exception {
 
-        public String user, pass;
-
-        public Cred(String user, String pass) {
-            this.user = user;
-            this.pass = pass;
-        }
-
-        public Cred() {
-        }
-    }
-
-    public static void main(String[] args) throws IOException, InterruptedException, TimeoutException, ExecutionException {
-
+        
         Args arg = new Args();
         JCommander build = JCommander.newBuilder()
                 .addObject(arg)
@@ -39,15 +31,32 @@ public class Main {
             build.usage();
             return;
         }
+
+        launch(arg);
+
+        
+    }
+    
+    /**
+     * Can launch as a library
+     * @param arg
+     * @throws Exception 
+     */
+    public static void launch(Args arg) throws Exception{
+        Log.main().async = true;
+        Log.main().stackTrace = false;
+        Log.main().disable = arg.disableLog;
+        
+        Files.createDirectories(Paths.get(arg.localPath));
         if(arg.doCompare){
             CompareRepo.compare(arg);
         }else{
             CopyRepo.copyRepo(arg);
         }
-        
+        for(BaseClient c:openedClients){
+            c.close();
+        }
         
         Log.close();
-
-        
     }
 }

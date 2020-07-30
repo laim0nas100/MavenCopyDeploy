@@ -3,7 +3,7 @@
 
 Sonatype nexus repository migration tool. 
 
-Uses HTTPS API.
+Uses REST API and curl command to upload files.
 Supports nexus versions 3 and 2 (both ways).
 
 For command line usage read [Args.java ](https://github.com/laim0nas100/MavenCopyDeploy/blob/master/src/main/java/lt/lb/mavencopydeploy/Args.java) file, or type "-help".

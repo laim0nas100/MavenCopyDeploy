@@ -63,37 +63,40 @@ public class CopyRepo {
 
     public static void copyRepo(Args arg) throws IOException, InterruptedException, TimeoutException {
 
-        Objects.requireNonNull(arg.destUrl);
+        Objects.requireNonNull(arg.domainDest);
 
         arg.localPath = StringOp.appendIfMissing(arg.localPath, Java.getFileSeparator());
-        arg.destUrl = StringOp.appendIfMissing(arg.destUrl, "/");
+        arg.domainDest = StringOp.appendIfMissing(arg.domainDest, "/");
+        
+        RepoArgs src = RepoArgs.fromSource(arg);
+        RepoArgs dest = RepoArgs.fromDest(arg);
 
         int maxTemp = arg.maxTemp;
 
         Files.createDirectories(Paths.get(arg.localPath));
 
-        Main.Cred cred = new Main.Cred(arg.userSrc, arg.paswSrc);
         Deploy deploy = new Deploy();
 
         BaseClient clientSrcs;
         if (arg.versionSource == 3) {
-            clientSrcs = new ClientSetup3(cred);
+            clientSrcs = new ClientSetup3(src.getCred());
         } else if (arg.versionSource == 2) {
-            clientSrcs = new ClientSetup2(cred);
-            arg.srcUrl = StringOp.appendIfMissing(arg.srcUrl, "/");
+            clientSrcs = new ClientSetup2(src.getCred());
+            arg.domainSrc = StringOp.appendIfMissing(arg.domainSrc, "/");
         } else {
             throw new IllegalArgumentException("Only supported versions are 2,3");
         }
+        Main.openedClients.add(clientSrcs);
 
         JobExecutor executor = new ScheduledJobExecutor(new FastWaitingExecutor(20, WaitTime.ofSeconds(4)));
 
-        ReadOnlyIterator<DownloadArtifact> allArtifactsFromRepo = clientSrcs.getAllArtifacts(arg.srcUrl);
+        ReadOnlyIterator<DownloadArtifact> allArtifactsFromRepo = clientSrcs.getAllArtifacts(src.resolveUrl());
 
         long fileNum = 0;
         AtomicLong tempFiles = new AtomicLong(0);
 
         Stream<DownloadArtifact> filter = allArtifactsFromRepo.toStream()
-                .filter(art -> !art.getDownloadURL().endsWith("md5") || art.getDownloadURL().endsWith("sha1"));
+                .filter(art -> !art.exclude(arg.excludedExt) && art.include(arg.includedExt));
 
         for (final DownloadArtifact artifactDown : ReadOnlyIterator.of(filter)) {
             fileNum++;
@@ -107,8 +110,8 @@ public class CopyRepo {
 
             UnsafeConsumer<Job> upload = k -> {
                 String where = path.toAbsolutePath().toString();
-                String url = arg.destUrl + artifactDown.getRelativePath();
-                deploy.executeCurlUpload(arg.userDst, arg.paswDst, where, url);
+                String url = dest.resolveUrl() + artifactDown.getRelativePath();
+                deploy.executeCurlUpload(dest.user, dest.password, where, url);
             };
 
             UnsafeConsumer<Job> delete = k -> {
@@ -142,9 +145,6 @@ public class CopyRepo {
             executor.submitAll(jobDownload, jobUpload, jobDelete);
 
         }
-        executor.shutdown();
-        executor.awaitTermination(100, TimeUnit.DAYS);
-        clientSrcs.close();
-        Log.await(1, TimeUnit.DAYS);
+        executor.shutdownAndWait(100, TimeUnit.DAYS);
     }
 }

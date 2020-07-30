@@ -14,7 +14,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lt.lb.commons.F;
 import lt.lb.commons.Log;
-import lt.lb.mavencopydeploy.Main.Cred;
+import lt.lb.mavencopydeploy.RepoArgs.Cred;
 import lt.lb.mavencopydeploy.net.BaseClient;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;

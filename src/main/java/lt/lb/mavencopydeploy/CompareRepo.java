@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
@@ -20,7 +21,6 @@ import lt.lb.commons.misc.ExtComparator;
 import lt.lb.commons.parsing.StringOp;
 import lt.lb.commons.threads.executors.FastExecutor;
 import lt.lb.commons.threads.Futures;
-import lt.lb.mavencopydeploy.Main.Cred;
 import lt.lb.mavencopydeploy.net.BaseClient;
 import lt.lb.mavencopydeploy.net.DownloadArtifact;
 import lt.lb.mavencopydeploy.net.nexus2.ClientSetup2;
@@ -28,7 +28,7 @@ import lt.lb.mavencopydeploy.net.nexus3.ClientSetup3;
 
 /**
  *
- * @author Laimonas Beniušis
+ * @author laim0nas100
  */
 public class CompareRepo {
 
@@ -42,34 +42,19 @@ public class CompareRepo {
         }
     }
 
-    public static ReadOnlyIterator<DownloadArtifact> filterNoHashes(ReadOnlyIterator<DownloadArtifact> artifacts) {
-        Stream<DownloadArtifact> filter = artifacts
-                .toStream()
-                .filter(art -> !StringOp.endsWithAny(art.getDownloadURL(), "md5", "sha1"));
-
-        return ReadOnlyIterator.of(filter);
-    }
-
-    public static Future<ArrayList<DownloadArtifact>> collect(Executor exe, ReadOnlyIterator<DownloadArtifact> iter) {
+    static Future<ArrayList<DownloadArtifact>> collect(Executor exe, ReadOnlyIterator<DownloadArtifact> iter) {
         FutureTask<ArrayList<DownloadArtifact>> ofSupplier = Futures.ofSupplier(() -> iter.toArrayList());
         exe.execute(ofSupplier);
         return ofSupplier;
     }
 
     public static final void compare(Args arg) throws InterruptedException, ExecutionException, FileNotFoundException, UnsupportedEncodingException {
-        RepoArgs source = new RepoArgs();
-        source.password = arg.paswSrc;
-        source.user = arg.userSrc;
-        source.repoUrl = arg.srcUrl;
-        source.version = arg.versionSource;
 
-        RepoArgs dest = new RepoArgs();
-        dest.password = arg.paswDst;
-        dest.user = arg.userDst;
-        dest.repoUrl = arg.destUrl;
-        dest.version = arg.versionDest;
-        Executor exe = new FastExecutor(arg.threadCount);
-        ArrayList<ArtifactDiff> compare = compare(exe, source, dest);
+        ArrayList<ArtifactDiff> compare = compareTruly(arg);
+//        .filter(art -> !art.exclude(arg.excludedExt) && art.include(arg.includedExt))
+        String finalPath = StringOp.appendIfMissing(arg.localPath, Java.getFileSeparator()) + "compare.txt";
+
+        Log.print("Write compared repo information to " + finalPath);
         ArrayList<String> lines = new ArrayList<>();
         lines.add("In both:");
         compare.stream().filter(f -> f.inDest && f.inSource).map(m -> m.getRelativePath()).forEach(lines::add);
@@ -79,29 +64,53 @@ public class CompareRepo {
         lines.add("");
         lines.add("Only in destination:");
         compare.stream().filter(f -> f.inDest && !f.inSource).map(m -> m.getRelativePath()).forEach(lines::add);
-        String finalPath = StringOp.appendIfMissing(arg.localPath, Java.getFileSeparator())+"compare.txt";
+
         TextFileIO.writeToFile(finalPath, lines);
 
     }
 
-    public static final ArrayList<ArtifactDiff> compare(Executor exe, RepoArgs source, RepoArgs dest) throws InterruptedException, ExecutionException {
-        Cred credSource = new Cred(source.user, source.password);
-        Cred credDest = new Cred(dest.user, dest.password);
-        BaseClient clientSource = source.version == 3 ? new ClientSetup3(credSource) : new ClientSetup2(credSource);
-        BaseClient clientDest = dest.version == 3 ? new ClientSetup3(credDest) : new ClientSetup2(credDest);
+    static final ArrayList<ArtifactDiff> compareTruly(Args arg) throws InterruptedException, ExecutionException {
+        RepoArgs source = RepoArgs.fromSource(arg);
+        
 
-        Future<ArrayList<DownloadArtifact>> collectDst = collect(exe, filterNoHashes(clientDest.getAllArtifacts(dest.repoUrl)));
-        Future<ArrayList<DownloadArtifact>> collectSrc = collect(exe, filterNoHashes(clientSource.getAllArtifacts(source.repoUrl)));
+        RepoArgs dest = RepoArgs.fromDest(arg);
+        
+        Executor exe = new FastExecutor(arg.threadCount);
+        BaseClient clientSource = source.version == 3 ? new ClientSetup3(source.getCred()) : new ClientSetup2(source.getCred());
+        BaseClient clientDest = dest.version == 3 ? new ClientSetup3(dest.getCred()) : new ClientSetup2(dest.getCred());
+        Main.openedClients.add(clientSource);
+        Main.openedClients.add(clientDest);
         HashMap<String, ArtifactDiff> map = new HashMap<>();
 
-        F.iterate(collectSrc.get(), (i, art) -> {
+        FutureTask<List<DownloadArtifact>> taskDest = new FutureTask<>(() -> {
+            return clientDest.getAllArtifacts(dest.resolveUrl()).toStream()
+                    .filter(art -> !art.exclude(arg.excludedExt) && art.include(arg.includedExt))
+                    .map(m -> {
+                        Log.print("Reading dest " + m.getRelativePath());
+                        return m;
+                    }).collect(Collectors.toList());
+        });
+
+        FutureTask<List<DownloadArtifact>> taskSource = new FutureTask<>(() -> {
+            return clientSource.getAllArtifacts(source.resolveUrl()).toStream()
+                    .filter(art -> !art.exclude(arg.excludedExt) && art.include(arg.includedExt))
+                    .map(m -> {
+                        Log.print("Reading src " + m.getRelativePath());
+                        return m;
+                    }).collect(Collectors.toList());
+        });
+
+        exe.execute(taskDest);
+
+        exe.execute(taskSource);
+
+        F.iterate(taskSource.get(), (i, art) -> {
             ArtifactDiff diff = new ArtifactDiff(art.getDownloadURL(), art.getRelativePath());
             diff.inSource = true;
-
             map.put(diff.getRelativePath(), diff);
 
         });
-        F.iterate(collectDst.get(), (i, art) -> {
+        F.iterate(taskDest.get(), (i, art) -> {
             if (map.containsKey(art.getRelativePath())) {
                 map.get(art.getRelativePath()).inDest = true;
             } else {
@@ -111,7 +120,9 @@ public class CompareRepo {
             }
         });
 
-        return map.values().stream().sorted(ExtComparator.ofValue(c -> c.getRelativePath())).collect(Collectors.toCollection(() -> new ArrayList<>()));
+        ArrayList<ArtifactDiff> collect = map.values().stream().sorted(ExtComparator.ofValue(c -> c.getRelativePath())).collect(Collectors.toCollection(() -> new ArrayList<>()));
+
+        return collect;
 
     }
 }

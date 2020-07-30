@@ -3,14 +3,12 @@ package lt.lb.mavencopydeploy.net.nexus3;
 import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
 import lt.lb.commons.F;
-import lt.lb.commons.Log;
-import lt.lb.commons.containers.values.StringValue;
 import lt.lb.commons.containers.values.Value;
+import lt.lb.commons.iteration.PagedIteration;
 import lt.lb.commons.iteration.ReadOnlyIterator;
-import lt.lb.mavencopydeploy.Main.Cred;
+import lt.lb.mavencopydeploy.RepoArgs.Cred;
 import lt.lb.mavencopydeploy.net.BaseClient;
 import lt.lb.mavencopydeploy.net.DownloadArtifact;
 import lt.lb.mavencopydeploy.net.nexus3.JsonType.ArtifactJson;
@@ -49,47 +47,29 @@ public class ClientSetup3 extends BaseClient {
 
     public ReadOnlyIterator<ArtifactJson> getAllArtifactsFromRepo(String repoFirstUrl) {
 
-        JsonType first = getRepositoryArtifacts(repoFirstUrl);
-
-        Value<ReadOnlyIterator<ArtifactJson>> items = new Value<>(ReadOnlyIterator.of(first.items));
-        if (first.continuationToken == null) {
-            return items.get();
-        }
-        final String cont = repoFirstUrl + "&continuationToken=";
-        StringValue nextToken = new StringValue(first.continuationToken);
-
-        Iterator<ArtifactJson> iterator = new Iterator<ArtifactJson>() {
+        PagedIteration<JsonType, ArtifactJson> iter = new PagedIteration<JsonType, ArtifactJson>() {
             @Override
-            public boolean hasNext() {
-                if (items.get().hasNext()) {
-                    return true;
-                }
-
-                if (nextToken.isNotNull()) {
-                    return true;
-                }
-                return false;
+            public JsonType getFirstPage() {
+                return getRepositoryArtifacts(repoFirstUrl);
             }
 
             @Override
-            public ArtifactJson next() {
-                if (items.get().hasNext()) {
-                    return items.get().getNext();
-                }
-
-                if (hasNext()) { // need to make request
-                    JsonType newArtifacts = getRepositoryArtifacts(cont + nextToken.get());
-                    items.set(ReadOnlyIterator.of(newArtifacts.items));
-                    nextToken.set(newArtifacts.continuationToken);
-                    return next();
-                } else {
-                    throw new NoSuchElementException();
-                }
+            public Iterator<ArtifactJson> getItems(JsonType info) {
+                return info.items.iterator();
             }
 
+            @Override
+            public JsonType getNextPage(JsonType info) {
+                return getRepositoryArtifacts(repoFirstUrl + "&continuationToken=" + info.continuationToken);
+            }
+
+            @Override
+            public boolean hasNextPage(JsonType info) {
+                return info.continuationToken != null;
+            }
         };
 
-        return ReadOnlyIterator.of(iterator);
+        return ReadOnlyIterator.of(iter.toIterator());
 
     }
 
@@ -103,7 +83,7 @@ public class ClientSetup3 extends BaseClient {
                 JsonType fromJson = gson.fromJson(str, JsonType.class);
                 type.accept(fromJson);
             } else {
-                Log.print("Failed response");
+                throw new RuntimeException("Fail to call " + fullUrl);
             }
         });
 

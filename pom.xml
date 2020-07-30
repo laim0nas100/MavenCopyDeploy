@@ -33,7 +33,7 @@
         <dependency>
             <groupId>com.github.laim0nas100</groupId>
             <artifactId>JobSystem</artifactId>
-            <version>1f5857c238bf430233df3386cec3f198f92b3e80</version>
+            <version>01b3ee6d71190a73f3512afdd55d142cb1368523</version>
             <type>jar</type>
         </dependency>
         
