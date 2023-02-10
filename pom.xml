@@ -11,23 +11,21 @@
         <maven.compiler.target>1.8</maven.compiler.target>
     </properties>
     <repositories>
-		<repository>
-		    <id>jitpack.io</id>
-		    <url>https://jitpack.io</url>
-		</repository>
-	</repositories>
+        <repository>
+            <id>jitpack.io</id>
+            <url>https://jitpack.io</url>
+        </repository>
+    </repositories>
     <dependencies>
         <dependency>
             <groupId>com.github.laim0nas100.Commons</groupId>
             <artifactId>commonslb-log</artifactId>
-            <version>aafe5023bea64d6d423217dc580c22db4e657889</version>
-            <type>jar</type>
+            <version>2022.10v5</version>
         </dependency>
         <dependency>
             <groupId>com.github.laim0nas100.Commons</groupId>
             <artifactId>commonslb-io</artifactId>
-            <version>aafe5023bea64d6d423217dc580c22db4e657889</version>
-            <type>jar</type>
+            <version>2022.10v5</version>
         </dependency>
         
         <dependency>

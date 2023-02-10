@@ -8,6 +8,7 @@ import java.util.concurrent.Future;
 import java.util.function.Consumer;
 import lt.lb.commons.F;
 import lt.lb.commons.iteration.ReadOnlyIterator;
+import lt.lb.uncheckedutils.Checked;
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.ConnectionPool;
@@ -22,9 +23,10 @@ import okio.Okio;
  * @author laim0nas100
  */
 public abstract class BaseClient {
+
     protected OkHttpClient client;
     protected ConnectionPool connectionPool;
-    
+
     public void close() throws IOException {
         client.dispatcher().cancelAll();
         client.dispatcher().executorService().shutdown();
@@ -32,7 +34,7 @@ public abstract class BaseClient {
     }
 
     public void getUrlAndWait(String url, Consumer<Response> cons) {
-        F.unsafeRun(() -> getUrl(url, cons).get());
+        Checked.uncheckedRun(() -> getUrl(url, cons).get());
     }
 
     public Future getUrl(String url, Consumer<Response> cons) {
@@ -50,10 +52,10 @@ public abstract class BaseClient {
 
             @Override
             public void onResponse(Call call, Response resp) throws IOException {
-                F.checkedRun(() -> {
+                Checked.checkedRun(() -> {
                     cons.accept(resp);
-                }).ifPresent(t->future.completeExceptionally(t));
-                F.checkedRun(resp::close);
+                }).ifPresent(t -> future.completeExceptionally(t));
+                Checked.checkedRun(resp::close);
                 future.complete(null);
 
             }
@@ -65,7 +67,7 @@ public abstract class BaseClient {
     public Future downloadFile(String url, Path file) {
 
         return getUrl(url, resp -> {
-            F.unsafeRun(() -> {
+            Checked.uncheckedRun(() -> {
                 BufferedSink buffer = Okio.buffer(Okio.sink(file, StandardOpenOption.CREATE_NEW));
                 buffer.writeAll(resp.body().source());
                 buffer.close();
@@ -73,6 +75,6 @@ public abstract class BaseClient {
         });
 
     }
-    
+
     public abstract ReadOnlyIterator<DownloadArtifact> getAllArtifacts(String url);
 }

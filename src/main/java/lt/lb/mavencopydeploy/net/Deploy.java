@@ -5,8 +5,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import lt.lb.commons.F;
-import lt.lb.commons.Log;
-import lt.lb.commons.parsing.StringOp;
+import lt.lb.commons.DLog;
+import lt.lb.uncheckedutils.Checked;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -23,15 +24,15 @@ public class Deploy {
             String fullUrl
     ) {
 
-            F.unsafeRun(()->{
+            Checked.uncheckedRun(()->{
                 executeProcess("curl","-v","-u",user+":"+pass,"--upload-file",file,fullUrl);
             });
             
     }
     
     public void executeProcess(String... cmd) throws IOException{
-//        Log.print("Executing listenerStopprocess");
-//        Log.print(cmd);
+//        DLog.print("Executing listenerStopprocess");
+//        DLog.print(cmd);
         ProcessBuilder builder = new ProcessBuilder(cmd);
         builder.redirectErrorStream();
         Process start = builder.start();
@@ -40,25 +41,25 @@ public class Deploy {
 
         String line = null;
         while ((line = reader.readLine()) != null) {
-           Log.println(line);
+           DLog.println(line);
         }
         start.exitValue();
     }
     
     public void executeProcess2(String... cmd) throws IOException{
-        Log.print("Executing process");
+        DLog.print("Executing process");
         
-        String c = StringOp.join(cmd, " ");
-        Log.print(c);
+        String c = StringUtils.join(cmd, " ");
+        DLog.print(c);
         Process process = Runtime.getRuntime().exec(c);
         InputStream is = process.getInputStream();
         BufferedReader reader = new BufferedReader(new InputStreamReader(is));
 
         String line = null;
         while ((line = reader.readLine()) != null) {
-           Log.println(line);
+           DLog.println(line);
         }
-        F.unsafeRun(process::waitFor);
+        Checked.uncheckedRun(process::waitFor);
         process.exitValue();
     }
 }

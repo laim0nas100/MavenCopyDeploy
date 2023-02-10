@@ -4,7 +4,6 @@ import com.google.gson.Gson;
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
-import lt.lb.commons.F;
 import lt.lb.commons.containers.values.Value;
 import lt.lb.commons.iteration.PagedIteration;
 import lt.lb.commons.iteration.ReadOnlyIterator;
@@ -12,6 +11,7 @@ import lt.lb.mavencopydeploy.RepoArgs.Cred;
 import lt.lb.mavencopydeploy.net.BaseClient;
 import lt.lb.mavencopydeploy.net.DownloadArtifact;
 import lt.lb.mavencopydeploy.net.nexus3.JsonType.ArtifactJson;
+import lt.lb.uncheckedutils.Checked;
 import okhttp3.ConnectionPool;
 import okhttp3.Credentials;
 import okhttp3.Interceptor;
@@ -69,7 +69,7 @@ public class ClientSetup3 extends BaseClient {
             }
         };
 
-        return ReadOnlyIterator.of(iter.toIterator());
+        return ReadOnlyIterator.of(iter.iterator());
 
     }
 
@@ -79,7 +79,7 @@ public class ClientSetup3 extends BaseClient {
 
         getUrlAndWait(fullUrl, resp -> {
             if (resp.isSuccessful()) {
-                String str = F.unsafeCall(() -> resp.body().string());
+                String str = Checked.uncheckedCall(() -> resp.body().string());
                 JsonType fromJson = gson.fromJson(str, JsonType.class);
                 type.accept(fromJson);
             } else {

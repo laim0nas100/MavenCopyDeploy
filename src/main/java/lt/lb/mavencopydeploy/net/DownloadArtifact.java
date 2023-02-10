@@ -1,7 +1,7 @@
 package lt.lb.mavencopydeploy.net;
 
 import java.util.List;
-import lt.lb.commons.parsing.StringOp;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -12,8 +12,8 @@ public class DownloadArtifact {
     private String relativePath;
     public DownloadArtifact(String downloadURL, String relativePath){
         this.downloadURL = downloadURL;
-        relativePath = StringOp.removeStart(relativePath, "/");
-        relativePath = StringOp.removeEnd(relativePath, "/");
+        relativePath = StringUtils.removeStart(relativePath, "/");
+        relativePath = StringUtils.removeEnd(relativePath, "/");
         this.relativePath = relativePath;
     }
 
@@ -49,7 +49,7 @@ public class DownloadArtifact {
     
     public boolean endsWithAny(List<String> ends){
         for(String end:ends){
-            if(StringOp.endsWith(this.relativePath, end)){
+            if(StringUtils.endsWith(this.relativePath, end)){
                 return true;
             }
         }

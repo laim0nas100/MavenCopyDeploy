@@ -1,10 +1,16 @@
 package lt.lb.mavencopydeploy;
 
+import com.beust.jcommander.IStringConverter;
 import com.beust.jcommander.Parameter;
 import java.io.File;
-import java.util.Arrays;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Objects;
 import lt.lb.commons.Java;
+import lt.lb.commons.containers.collections.ImmutableCollections;
+import lt.lb.commons.iteration.streams.MakeStream;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -12,11 +18,18 @@ import lt.lb.commons.Java;
  */
 public class Args {
 
+    public static enum Mode {
+        COMPARE, COPY, DOWNLOAD
+    }
+
+    @Parameter(names = "-mode", required = false, description = "COPY/COMPARE/DOWNLOAD", converter = ModeConverter.class)
+    public Mode mode = Mode.DOWNLOAD;
+
     @Parameter(names = "-inclext", required = false, description = "included extensions, leave empty for disable")
-    public List<String> includedExt = Arrays.asList();
+    public List<String> includedExt = ImmutableCollections.listOf();
 
     @Parameter(names = "-exclext", required = false, description = "excluded extensions, leave empty for disable")
-    public List<String> excludedExt = Arrays.asList("md5", "sha1");
+    public List<String> excludedExt = ImmutableCollections.listOf("md5", "sha1");
 
     @Parameter(names = "-vs", required = false, description = "Source Nexus version 2 or 3")
     public int versionSource = 3;
@@ -29,20 +42,20 @@ public class Args {
     @Parameter(names = "-sp", required = true, description = "Source Nexus password")
     public String paswSrc;
 
-    @Parameter(names = "-du", required = true, description = "Destination Nexus user")
+    @Parameter(names = "-du", required = false, description = "Destination Nexus user")
     public String userDst;
-    @Parameter(names = "-dp", required = true, description = "Destination Nexus password")
+    @Parameter(names = "-dp", required = false, description = "Destination Nexus password")
     public String paswDst;
 
-    @Parameter(names = "-domainsrc", required = true, description = "Nexus source repository domain.")
+    @Parameter(names = "-srcdomain", required = true, description = "Nexus source repository domain.")
     public String domainSrc;
-    @Parameter(names = "-domaindest", required = true, description = "Nexus destination repository domain.")
+    @Parameter(names = "-destdomain", required = false, description = "Nexus destination repository domain.")
     public String domainDest;
 
-    @Parameter(names = "-idsrc", required = true, description = "ID (name) of a source repository")
+    @Parameter(names = "-srcid", required = true, description = "ID (name) of a source repository")
     public String idSrc;
 
-    @Parameter(names = "-iddest", required = true, description = "ID (name) of a destination repository")
+    @Parameter(names = "-destid", required = false, description = "ID (name) of a destination repository")
     public String idDest;
 
     @Parameter(names = "-temppath", required = false, description = "Folder to store artifacts temporarily. Will be created if absent and will not be deleted afterwards. Should be empty, or not contain any files with number for their names."
@@ -55,8 +68,8 @@ public class Args {
     @Parameter(names = "-tc", required = false, description = "Number of threads to use. 0 means no threads (will run as a single threaded processs), below zero means unlimited")
     public int threadCount = Java.getAvailableProcessors();
 
-    @Parameter(names = "-compare", required = false, description = "switch to compare function")
-    public boolean doCompare = false;
+    @Parameter(names = "-downloadpath", required = false, description = "download")
+    public String downloadPath = System.getProperty("user.home") + File.separator + "MavenCopyDeployWorkFolder" + File.separator + "download";
 
     @Parameter(names = "-disablelog", required = false, description = "disable logging")
     public boolean disableLog = false;
@@ -64,4 +77,35 @@ public class Args {
     @Parameter(names = {"--help", "-help", "help", "?"}, help = true)
     public boolean help;
 
+    
+    
+    public static <T extends Enum<T>> List<String> enumNames(Class<T> cls) {
+        return MakeStream.from(EnumSet.allOf(cls))
+                .sorted(Comparator.comparing(m -> m.ordinal()))
+                .map(m -> m.name())
+                .toList();
+    }
+
+    public static <T extends Enum<T>> T enumFromString(Class<T> cls, String value) {
+        Objects.requireNonNull(value);
+
+        EnumSet<T> all = EnumSet.allOf(cls);
+
+        for (T e : all) {
+            if (StringUtils.equalsIgnoreCase(e.name(), value)) {
+                return e;
+            }
+        }
+        throw new IllegalArgumentException(value + " is not part of acceptable values:" + enumNames(cls));
+
+    }
+
+    public static class ModeConverter implements IStringConverter<Mode> {
+
+        @Override
+        public Mode convert(String value) {
+            return enumFromString(Mode.class, value);
+        }
+
+    }
 }

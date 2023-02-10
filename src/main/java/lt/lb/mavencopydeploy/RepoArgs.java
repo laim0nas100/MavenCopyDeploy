@@ -1,6 +1,6 @@
 package lt.lb.mavencopydeploy;
 
-import lt.lb.commons.parsing.StringOp;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -17,7 +17,7 @@ public class RepoArgs {
     public boolean write = false;
 
     public String resolveUrl() {
-        String domain = StringOp.appendIfMissing(repoDomain, "/");
+        String domain = StringUtils.appendIfMissing(repoDomain, "/");
         if (version == 3) {
             if (!write) {
                 return domain + String.format("service/rest/v1/assets?repository=%s", repoId);
@@ -53,7 +53,7 @@ public class RepoArgs {
         dest.repoDomain = arg.domainDest;
         dest.version = arg.versionDest;
         dest.repoId = arg.idDest;
-        dest.write = !arg.doCompare;
+        dest.write = arg.mode == Args.Mode.COPY;
 
         return dest;
     }

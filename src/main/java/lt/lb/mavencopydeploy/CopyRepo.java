@@ -1,29 +1,25 @@
 package lt.lb.mavencopydeploy;
 
-import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 import java.util.stream.Stream;
-import lt.lb.commons.ArrayOp;
 import lt.lb.commons.Java;
-import lt.lb.commons.Log;
-import lt.lb.commons.SafeOpt;
-import lt.lb.commons.func.unchecked.UnsafeConsumer;
-import lt.lb.commons.func.unchecked.UnsafeRunnable;
+import lt.lb.commons.DLog;
+import lt.lb.commons.F;
+import lt.lb.uncheckedutils.SafeOpt;
 import lt.lb.commons.iteration.ReadOnlyIterator;
 import lt.lb.jobsystem.Job;
 import lt.lb.jobsystem.events.JobEvent;
 import lt.lb.jobsystem.events.JobEventListener;
 import lt.lb.jobsystem.JobExecutor;
-import lt.lb.commons.parsing.StringOp;
 import lt.lb.commons.threads.executors.FastWaitingExecutor;
 import lt.lb.commons.threads.sync.WaitTime;
 import lt.lb.jobsystem.Dependencies;
@@ -34,6 +30,8 @@ import lt.lb.mavencopydeploy.net.Deploy;
 import lt.lb.mavencopydeploy.net.DownloadArtifact;
 import lt.lb.mavencopydeploy.net.nexus2.ClientSetup2;
 import lt.lb.mavencopydeploy.net.nexus3.ClientSetup3;
+import lt.lb.uncheckedutils.func.UncheckedConsumer;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -42,15 +40,19 @@ import lt.lb.mavencopydeploy.net.nexus3.ClientSetup3;
 public class CopyRepo {
 
     static JobEventListener listenerStart = (JobEventListener) (JobEvent event) -> {
-        Log.print("Start job " + event.getCreator().getUUID());
+        DLog.print("Start job " + event.getCreator().getUUID());
     };
 
     static JobEventListener listenerStop = (JobEventListener) (JobEvent event) -> {
-        Log.print("End job " + event.getCreator().getUUID());
+        DLog.print("End job " + event.getCreator().getUUID());
     };
     static JobEventListener listenerError = (JobEvent event) -> {
-        SafeOpt<?> ofOptional = SafeOpt.ofOptional(event.getData());
-        ofOptional.select(Throwable.class).ifPresent(m -> m.printStackTrace());
+       event.getData().ifPresent(err->{
+           if(err instanceof Throwable){
+               Throwable th = F.cast(err);
+               DLog.print("Error: "+th.getClass().getName()+" "+th.getMessage());
+           }
+       });
     };
 
     private static void jobDecorate(Job... jobs) {
@@ -65,8 +67,8 @@ public class CopyRepo {
 
         Objects.requireNonNull(arg.domainDest);
 
-        arg.localPath = StringOp.appendIfMissing(arg.localPath, Java.getFileSeparator());
-        arg.domainDest = StringOp.appendIfMissing(arg.domainDest, "/");
+        arg.localPath = StringUtils.appendIfMissing(arg.localPath, Java.getFileSeparator());
+        arg.domainDest = StringUtils.appendIfMissing(arg.domainDest, "/");
         
         RepoArgs src = RepoArgs.fromSource(arg);
         RepoArgs dest = RepoArgs.fromDest(arg);
@@ -82,11 +84,10 @@ public class CopyRepo {
             clientSrcs = new ClientSetup3(src.getCred());
         } else if (arg.versionSource == 2) {
             clientSrcs = new ClientSetup2(src.getCred());
-            arg.domainSrc = StringOp.appendIfMissing(arg.domainSrc, "/");
+            arg.domainSrc = StringUtils.appendIfMissing(arg.domainSrc, "/");
         } else {
             throw new IllegalArgumentException("Only supported versions are 2,3");
         }
-        Main.openedClients.add(clientSrcs);
 
         JobExecutor executor = new ScheduledJobExecutor(new FastWaitingExecutor(20, WaitTime.ofSeconds(4)));
 
@@ -103,18 +104,18 @@ public class CopyRepo {
             String id = " " + fileNum + " @" + artifactDown.getRelativePath();
             final Path path = Paths.get(arg.localPath + fileNum);
 
-            UnsafeConsumer<Job> download = k -> {
+            UncheckedConsumer<Job> download = k -> {
                 Future downloadFile = clientSrcs.downloadFile(artifactDown.getDownloadURL(), path);
                 downloadFile.get();
             };
 
-            UnsafeConsumer<Job> upload = k -> {
+            UncheckedConsumer<Job> upload = k -> {
                 String where = path.toAbsolutePath().toString();
                 String url = dest.resolveUrl() + artifactDown.getRelativePath();
                 deploy.executeCurlUpload(dest.user, dest.password, where, url);
             };
 
-            UnsafeConsumer<Job> delete = k -> {
+            UncheckedConsumer<Job> delete = k -> {
                 Files.delete(path);
             };
 
@@ -146,5 +147,6 @@ public class CopyRepo {
 
         }
         executor.shutdownAndWait(100, TimeUnit.DAYS);
+        clientSrcs.close();
     }
 }

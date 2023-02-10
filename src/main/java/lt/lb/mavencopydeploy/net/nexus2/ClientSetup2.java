@@ -1,8 +1,3 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
 package lt.lb.mavencopydeploy.net.nexus2;
 
 import java.io.ByteArrayInputStream;
@@ -13,7 +8,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 import lt.lb.commons.F;
-import lt.lb.commons.Log;
 import lt.lb.mavencopydeploy.RepoArgs.Cred;
 import lt.lb.mavencopydeploy.net.BaseClient;
 import okhttp3.ConnectionPool;
@@ -30,6 +24,7 @@ import lt.lb.commons.containers.values.Value;
 import lt.lb.commons.iteration.ChildrenIteratorProvider;
 import lt.lb.commons.iteration.ReadOnlyIterator;
 import lt.lb.mavencopydeploy.net.DownloadArtifact;
+import lt.lb.uncheckedutils.Checked;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -89,14 +84,14 @@ public class ClientSetup2 extends BaseClient {
     public ReadOnlyIterator<ArtifactType2> getArtifacts(String repoRootUrl) {
         ChildrenIteratorProvider<ArtifactType2> provider = new ChildrenIteratorProvider<ArtifactType2>() {
             @Override
-            public ReadOnlyIterator<ArtifactType2> getChildrenIterator(ArtifactType2 t) {
-                if (t.leaf) {
+            public Iterable<ArtifactType2> getChildren(ArtifactType2 t) {
+                 if (t.leaf) {
                     return ReadOnlyIterator.of();
                 }
                 Value<ReadOnlyIterator<ArtifactType2>> value = new Value<>();
                 getUrlAndWait(t.resourceURI, resp -> {
 
-                    ReadOnlyIterator<ArtifactType2> artifacts = F.unsafeCall(() -> {
+                    ReadOnlyIterator<ArtifactType2> artifacts = Checked.uncheckedCall(() -> {
                         String xml = resp.body().string();
                         DocumentBuilder dBuilder = docBuilderFactory.newDocumentBuilder();
 
@@ -116,7 +111,6 @@ public class ClientSetup2 extends BaseClient {
 
                 });
                 return value.get();
-
             }
         };
         ArtifactType2 fakeRoot = new ArtifactType2();
