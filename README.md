@@ -1,7 +1,7 @@
 
 # MavenCopyDeploy
 
-Sonatype nexus repository migration tool. 
+Sonatype nexus repository migration/download tool. 
 
 Uses REST API and curl command to upload files.
 Supports nexus versions 3 and 2 (both ways).
@@ -14,3 +14,5 @@ Ver. src| Ver. dest| Function| Supported
 2|3| copy|yes
 3|2| compare|yes
 3|3| compare|yes
+2|?|download|yes
+3|?|download|yes
