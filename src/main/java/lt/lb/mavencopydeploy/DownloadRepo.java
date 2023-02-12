@@ -98,7 +98,7 @@ public class DownloadRepo {
             };
 
             UncheckedConsumer<Job> download = k -> {
-                Future downloadFile = clientSrcs.downloadFile(artifactDown.getDownloadURL(), path);
+                Future downloadFile = clientSrcs.downloadFile(artifactDown.getURI(), path);
                 downloadFile.get();
             };
 

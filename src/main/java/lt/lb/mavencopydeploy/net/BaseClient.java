@@ -1,13 +1,14 @@
 package lt.lb.mavencopydeploy.net;
 
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
-import lt.lb.commons.F;
 import lt.lb.commons.iteration.ReadOnlyIterator;
+import lt.lb.mavencopydeploy.RepoArgs.Cred;
 import lt.lb.uncheckedutils.Checked;
 import okhttp3.Call;
 import okhttp3.Callback;
@@ -24,9 +25,14 @@ import okio.Okio;
  */
 public abstract class BaseClient {
 
+    protected Cred cred;
     protected OkHttpClient client;
     protected ConnectionPool connectionPool;
 
+    public BaseClient(Cred cred) {
+        this.cred = cred;
+    }
+    
     public void close() throws IOException {
         client.dispatcher().cancelAll();
         client.dispatcher().executorService().shutdown();
@@ -61,6 +67,18 @@ public abstract class BaseClient {
             }
         });
         return future;
+
+    }
+
+    public Future downloadFile(String url, OutputStream output) {
+
+        return getUrl(url, resp -> {
+            Checked.uncheckedRun(() -> {
+                BufferedSink buffer = Okio.buffer(Okio.sink(output));
+                buffer.writeAll(resp.body().source());
+                buffer.close();
+            });
+        });
 
     }
 

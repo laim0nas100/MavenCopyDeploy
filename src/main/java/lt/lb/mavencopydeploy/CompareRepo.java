@@ -17,6 +17,8 @@ import lt.lb.commons.Java;
 import lt.lb.commons.io.TextFileIO;
 import lt.lb.commons.iteration.For;
 import lt.lb.commons.iteration.ReadOnlyIterator;
+import lt.lb.commons.iteration.streams.MakeStream;
+import lt.lb.commons.iteration.streams.SimpleStream;
 import lt.lb.commons.threads.executors.FastExecutor;
 import lt.lb.commons.threads.Futures;
 import lt.lb.mavencopydeploy.net.BaseClient;
@@ -41,15 +43,9 @@ public class CompareRepo {
         }
     }
 
-    static Future<ArrayList<DownloadArtifact>> collect(Executor exe, ReadOnlyIterator<DownloadArtifact> iter) {
-        FutureTask<ArrayList<DownloadArtifact>> ofSupplier = Futures.ofSupplier(() -> iter.toArrayList());
-        exe.execute(ofSupplier);
-        return ofSupplier;
-    }
-
     public static final void compare(Args arg) throws InterruptedException, ExecutionException, FileNotFoundException, UnsupportedEncodingException, IOException {
 
-        ArrayList<ArtifactDiff> compare = compareTruly(arg);
+        List<ArtifactDiff> compare = compareTruly(arg);
 //        .filter(art -> !art.exclude(arg.excludedExt) && art.include(arg.includedExt))
         String finalPath = StringUtils.appendIfMissing(arg.localPath, Java.getFileSeparator()) + "compare.txt";
 
@@ -68,7 +64,7 @@ public class CompareRepo {
 
     }
 
-    static final ArrayList<ArtifactDiff> compareTruly(Args arg) throws InterruptedException, ExecutionException, IOException {
+    static final List<ArtifactDiff> compareTruly(Args arg) throws InterruptedException, ExecutionException, IOException {
         RepoArgs source = RepoArgs.fromSource(arg);
         
 
@@ -82,18 +78,16 @@ public class CompareRepo {
         FutureTask<List<DownloadArtifact>> taskDest = new FutureTask<>(() -> {
             return clientDest.getAllArtifacts(dest.resolveUrl()).toStream()
                     .filter(art -> !art.exclude(arg.excludedExt) && art.include(arg.includedExt))
-                    .map(m -> {
+                    .peek(m -> {
                         DLog.print("Reading dest " + m.getRelativePath());
-                        return m;
                     }).collect(Collectors.toList());
         });
 
         FutureTask<List<DownloadArtifact>> taskSource = new FutureTask<>(() -> {
             return clientSource.getAllArtifacts(source.resolveUrl()).toStream()
                     .filter(art -> !art.exclude(arg.excludedExt) && art.include(arg.includedExt))
-                    .map(m -> {
+                    .peek(m -> {
                         DLog.print("Reading src " + m.getRelativePath());
-                        return m;
                     }).collect(Collectors.toList());
         });
 
@@ -102,7 +96,7 @@ public class CompareRepo {
         exe.execute(taskSource);
 
         For.elements().iterate(taskSource.get(), (i, art) -> {
-            ArtifactDiff diff = new ArtifactDiff(art.getDownloadURL(), art.getRelativePath());
+            ArtifactDiff diff = new ArtifactDiff(art.getURI(), art.getRelativePath());
             diff.inSource = true;
             map.put(diff.getRelativePath(), diff);
 
@@ -111,17 +105,15 @@ public class CompareRepo {
             if (map.containsKey(art.getRelativePath())) {
                 map.get(art.getRelativePath()).inDest = true;
             } else {
-                ArtifactDiff diff = new ArtifactDiff(art.getDownloadURL(), art.getRelativePath());
+                ArtifactDiff diff = new ArtifactDiff(art.getURI(), art.getRelativePath());
                 diff.inDest = true;
                 map.put(art.getRelativePath(), diff);
             }
         });
 
-        ArrayList<ArtifactDiff> collect = map.values().stream().sorted(Comparator.comparing(c -> c.getRelativePath())).collect(Collectors.toCollection(() -> new ArrayList<>()));
-
         clientDest.close();
         clientSource.close();
-        return collect;
+        return MakeStream.from(map.values()).sorted(Comparator.comparing(c -> c.getRelativePath())).toList();
 
     }
 }

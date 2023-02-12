@@ -38,6 +38,7 @@ public class ClientSetup2 extends BaseClient {
     DocumentBuilderFactory docBuilderFactory;
 
     public ClientSetup2(Cred cred) {
+        super(cred);
         docBuilderFactory = DocumentBuilderFactory.newInstance();
         String credentials = Credentials.basic(cred.user, cred.pass);
         Interceptor interceptor = new Interceptor() {

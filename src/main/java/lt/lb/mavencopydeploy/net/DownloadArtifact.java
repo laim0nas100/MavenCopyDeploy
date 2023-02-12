@@ -8,21 +8,21 @@ import org.apache.commons.lang3.StringUtils;
  * @author laim0nas100
  */
 public class DownloadArtifact {
-    private String downloadURL;
+    private String uri;
     private String relativePath;
-    public DownloadArtifact(String downloadURL, String relativePath){
-        this.downloadURL = downloadURL;
+    public DownloadArtifact(String uri, String relativePath){
+        this.uri = uri;
         relativePath = StringUtils.removeStart(relativePath, "/");
         relativePath = StringUtils.removeEnd(relativePath, "/");
         this.relativePath = relativePath;
     }
 
-    public String getDownloadURL() {
-        return downloadURL;
+    public String getURI() {
+        return uri;
     }
 
-    public void setDownloadURL(String downloadURL) {
-        this.downloadURL = downloadURL;
+    public void setURI(String uri) {
+        this.uri = uri;
     }
 
     public String getRelativePath() {

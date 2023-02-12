@@ -28,7 +28,7 @@ public class ClientSetup3 extends BaseClient {
     private Gson gson;
 
     public ClientSetup3(Cred cred) {
-
+        super(cred);
         gson = new Gson();
         String credentials = Credentials.basic(cred.user, cred.pass);
         Interceptor interceptor = new Interceptor() {

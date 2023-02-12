@@ -7,6 +7,7 @@ import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Future;
+import java.util.concurrent.FutureTask;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
@@ -25,6 +26,7 @@ import lt.lb.commons.threads.sync.WaitTime;
 import lt.lb.jobsystem.Dependencies;
 import lt.lb.jobsystem.ScheduledJobExecutor;
 import lt.lb.jobsystem.events.SystemJobEventName;
+import lt.lb.mavencopydeploy.net.ArtifactRepo;
 import lt.lb.mavencopydeploy.net.BaseClient;
 import lt.lb.mavencopydeploy.net.Deploy;
 import lt.lb.mavencopydeploy.net.DownloadArtifact;
@@ -47,12 +49,12 @@ public class CopyRepo {
         DLog.print("End job " + event.getCreator().getUUID());
     };
     static JobEventListener listenerError = (JobEvent event) -> {
-       event.getData().ifPresent(err->{
-           if(err instanceof Throwable){
-               Throwable th = F.cast(err);
-               DLog.print("Error: "+th.getClass().getName()+" "+th.getMessage());
-           }
-       });
+        event.getData().ifPresent(err -> {
+            if (err instanceof Throwable) {
+                Throwable th = F.cast(err);
+                DLog.print("Error: " + th.getClass().getName() + " " + th.getMessage());
+            }
+        });
     };
 
     private static void jobDecorate(Job... jobs) {
@@ -63,13 +65,73 @@ public class CopyRepo {
         }
     }
 
+    public static void copy(int maxTemp, String localPath, ArtifactRepo src, ArtifactRepo dest) throws Exception {
+
+        JobExecutor executor = new ScheduledJobExecutor(new FastWaitingExecutor(20, WaitTime.ofSeconds(4)));
+        long fileNum = 0;
+        AtomicLong tempFiles = new AtomicLong(0);
+
+        for (final DownloadArtifact artifactDown : src.getAllArtifacts()) {
+            fileNum++;
+            String id = " " + fileNum + " @" + artifactDown.getRelativePath();
+            final Path path = Paths.get(localPath + fileNum);
+
+            UncheckedConsumer<Job> download = k -> {
+                FutureTask downloadFile = src.downloadFile(artifactDown, path);
+                downloadFile.run();
+                downloadFile.get();
+            };
+
+            UncheckedConsumer<Job> upload = k -> {
+                String url = dest.getRoot() + artifactDown.getRelativePath();
+                FutureTask task = dest.upload(path, url);
+                task.run();
+                task.get();
+            };
+
+            UncheckedConsumer<Job> delete = k -> {
+                Files.delete(path);
+            };
+
+            Job jobDownload = new Job("download" + id, download);
+
+            Job jobUpload = new Job("upload" + id, upload);
+
+            Job jobDelete = new Job("delete" + id, delete);
+
+            if (maxTemp > 0) {
+                jobDownload.addDependency(() -> tempFiles.get() <= maxTemp);
+            }
+
+            jobUpload.addDependency(Dependencies.standard(jobDownload, SystemJobEventName.ON_SUCCESSFUL));
+
+            jobDelete.addDependency(Dependencies.standard(jobDownload, SystemJobEventName.ON_SUCCESSFUL));
+
+            jobDelete.addDependency(Dependencies.standard(jobUpload, SystemJobEventName.ON_DONE));
+
+            jobDecorate(jobDownload, jobUpload, jobDelete);
+            if (maxTemp > 0) {
+                jobDownload.addListener(SystemJobEventName.ON_SUCCESSFUL, j -> tempFiles.incrementAndGet());
+            }
+            if (maxTemp > 0) {
+                jobDelete.addListener(SystemJobEventName.ON_SUCCESSFUL, j -> tempFiles.decrementAndGet());
+            }
+
+            executor.submitAll(jobDownload, jobUpload, jobDelete);
+
+        }
+        executor.shutdownAndWait(100, TimeUnit.DAYS);
+        src.close();
+        dest.close();
+    }
+
     public static void copyRepo(Args arg) throws IOException, InterruptedException, TimeoutException {
 
         Objects.requireNonNull(arg.domainDest);
 
         arg.localPath = StringUtils.appendIfMissing(arg.localPath, Java.getFileSeparator());
         arg.domainDest = StringUtils.appendIfMissing(arg.domainDest, "/");
-        
+
         RepoArgs src = RepoArgs.fromSource(arg);
         RepoArgs dest = RepoArgs.fromDest(arg);
 
@@ -105,7 +167,7 @@ public class CopyRepo {
             final Path path = Paths.get(arg.localPath + fileNum);
 
             UncheckedConsumer<Job> download = k -> {
-                Future downloadFile = clientSrcs.downloadFile(artifactDown.getDownloadURL(), path);
+                Future downloadFile = clientSrcs.downloadFile(artifactDown.getURI(), path);
                 downloadFile.get();
             };
 
