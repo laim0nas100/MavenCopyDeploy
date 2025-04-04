@@ -9,6 +9,10 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
+        <commons-lb.version>2022.10v5</commons-lb.version>
+        <commons-lb.dir>com.github.laim0nas100.Commons</commons-lb.dir>
+<!--        <commons-lb.version>local-jar</commons-lb.version>
+        <commons-lb.dir>lt.lb.Commons</commons-lb.dir>-->
     </properties>
     <repositories>
         <repository>
@@ -18,26 +22,25 @@
     </repositories>
     <dependencies>
         <dependency>
-            <groupId>com.github.laim0nas100.Commons</groupId>
+            <groupId>${commons-lb.dir}</groupId>
             <artifactId>commonslb-log</artifactId>
-            <version>2022.10v5</version>
+            <version>${commons-lb.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.laim0nas100.Commons</groupId>
+            <groupId>${commons-lb.dir}</groupId>
             <artifactId>commonslb-io</artifactId>
-            <version>2022.10v5</version>
+            <version>${commons-lb.version}</version>
         </dependency>
         <dependency>
-            <groupId>com.github.laim0nas100.Commons</groupId>
+            <groupId>${commons-lb.dir}</groupId>
             <artifactId>commonslb-javafx</artifactId>
-            <version>2022.10v5</version>
+            <version>${commons-lb.version}</version>
         </dependency>
         
         <dependency>
             <groupId>com.github.laim0nas100</groupId>
             <artifactId>JobSystem</artifactId>
             <version>01b3ee6d71190a73f3512afdd55d142cb1368523</version>
-            <type>jar</type>
         </dependency>
         
         <dependency>
@@ -59,12 +62,6 @@
         </dependency>
 
         <dependency>
-            <groupId>lt.lb</groupId>
-            <artifactId>JavaFXLibs</artifactId>
-            <version>16</version>
-        </dependency>
-        
-        <dependency>
             <groupId>com.beust</groupId>
             <artifactId>jcommander</artifactId>
             <version>1.72</version>
@@ -83,7 +80,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.3.2</version>
+                <version>3.10.1</version>
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
@@ -96,6 +93,9 @@
     <profiles>
         <profile>
             <id>simpleJar</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <build>
                 <finalName>NexusMavenRepoCopy</finalName>
                 <plugins>
@@ -113,44 +113,6 @@
                             <archive>
                                 <manifest>
                                     <mainClass>lt.lb.mavencopydeploy.Main</mainClass>
-                                </manifest>
-                            </archive>
-
-                        </configuration>
-                        <executions>
-                            <execution>
-                                <id>make-assembly</id>
-                                <!-- bind to the packaging phase -->
-                                <phase>package</phase> 
-                                <goals>
-                                    <goal>single</goal>
-                                </goals>
-                            </execution>
-                        </executions>
-                    </plugin>
-
-                </plugins>
-            </build>   
-        </profile>
-        <profile>
-            <id>fxjar</id>
-            <build>
-                <finalName>NexusMavenRepoCopy</finalName>
-                <plugins>
-                    <!-- Maven Assembly Plugin -->
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-assembly-plugin</artifactId>
-                        <version>2.4.1</version>
-                        <configuration>
-                            <!-- get all project dependencies -->
-                            <descriptorRefs>
-                                <descriptorRef>jar-with-dependencies</descriptorRef>
-                            </descriptorRefs>
-                            <!-- MainClass in mainfest make a executable jar -->
-                            <archive>
-                                <manifest>
-                                    <mainClass>lt.lb.mavencopydeploy.JavaFXLaunch</mainClass>
                                 </manifest>
                             </archive>
 

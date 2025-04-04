@@ -128,7 +128,7 @@ public interface ArtifactRepo extends AutoCloseable {
                     public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
                         String fullPath = file.toAbsolutePath().toString();
                         String relative = rootPath.relativize(file).toString();
-                        list.add(new DownloadArtifact(relative, fullPath));
+                        list.add(new DownloadArtifact(fullPath, relative));
                         return FileVisitResult.CONTINUE;
                     }
 

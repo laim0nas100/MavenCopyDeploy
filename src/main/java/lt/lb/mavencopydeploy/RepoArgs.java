@@ -1,5 +1,7 @@
 package lt.lb.mavencopydeploy;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -59,13 +61,25 @@ public class RepoArgs {
     }
 
     public Cred getCred() {
-        return new Cred(user, password);
+        Cred cred = new Cred(user, password);
+        cred.origin = repoDomain;
+        cred.host = cred.origin;
+        cred.host = StringUtils.removeStart(cred.host, "https://");
+        cred.host = StringUtils.removeStart(cred.host, "http://");
+        cred.host = StringUtils.removeEnd(cred.host, "/");
+        cred.repoID = repoId;
+        return cred;
     }
 
     public static class Cred {
 
+        public String origin;
+        public String host;
         public String user, pass;
-
+        
+        public String cookie;
+        public String repoID;
+        
         public Cred(String user, String pass) {
             this.user = user;
             this.pass = pass;
@@ -73,5 +87,6 @@ public class RepoArgs {
 
         public Cred() {
         }
+        
     }
 }

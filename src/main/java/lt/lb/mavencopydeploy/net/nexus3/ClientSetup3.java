@@ -1,23 +1,24 @@
 package lt.lb.mavencopydeploy.net.nexus3;
 
 import com.google.gson.Gson;
-import java.io.IOException;
+import java.util.Base64;
 import java.util.Iterator;
-import java.util.concurrent.TimeUnit;
+import lt.lb.commons.DLog;
 import lt.lb.commons.containers.values.Value;
 import lt.lb.commons.iteration.PagedIteration;
 import lt.lb.commons.iteration.ReadOnlyIterator;
+import lt.lb.commons.iteration.streams.MakeStream;
 import lt.lb.mavencopydeploy.RepoArgs.Cred;
 import lt.lb.mavencopydeploy.net.BaseClient;
 import lt.lb.mavencopydeploy.net.DownloadArtifact;
 import lt.lb.mavencopydeploy.net.nexus3.JsonType.ArtifactJson;
 import lt.lb.uncheckedutils.Checked;
-import okhttp3.ConnectionPool;
-import okhttp3.Credentials;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
+import okhttp3.Call;
+import okhttp3.FormBody;
 import okhttp3.Request;
+import okhttp3.RequestBody;
 import okhttp3.Response;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  *
@@ -30,18 +31,40 @@ public class ClientSetup3 extends BaseClient {
     public ClientSetup3(Cred cred) {
         super(cred);
         gson = new Gson();
-        String credentials = Credentials.basic(cred.user, cred.pass);
-        Interceptor interceptor = new Interceptor() {
-            @Override
-            public Response intercept(Interceptor.Chain chain) throws IOException {
-                Request request = chain.request();
-                Request authenticatedRequest = request.newBuilder()
-                        .header("Authorization", credentials).build();
-                return chain.proceed(authenticatedRequest);
-            }
-        };
-        connectionPool = new ConnectionPool(Integer.MAX_VALUE, 5000, TimeUnit.DAYS);
-        client = new OkHttpClient.Builder().connectionPool(connectionPool).addInterceptor(interceptor).build();
+        if(StringUtils.isBlank(cred.cookie)){
+            authenticate();
+        }else{
+            cookies += cred.cookie;
+        }
+
+    }
+
+    protected void authenticate() {
+        RequestBody formBody = new FormBody.Builder()
+                .add("username", Base64.getEncoder().encodeToString(cred.user.getBytes()))
+                .add("password", Base64.getEncoder().encodeToString(cred.pass.getBytes()))
+                .build();
+
+        String url = cred.origin + "service/rapture/session";
+        Request request = new Request.Builder()
+                .post(formBody)
+                .url(url)
+                .build();
+
+        Call newCall = client.newCall(request);
+        Response resp = Checked.uncheckedCall(() -> {
+            return newCall.execute();
+        });
+
+        DLog.print(resp);
+
+        DLog.print(resp.headers());
+
+        String get = resp.headers().get("Set-Cookie");
+        
+        String sessionID = MakeStream.from(StringUtils.split(get,';')).filter(f-> StringUtils.contains(f, "NXSESSIONID")).findFirst().get();
+
+        cookies += sessionID;
 
     }
 

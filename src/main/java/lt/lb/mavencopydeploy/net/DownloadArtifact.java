@@ -7,7 +7,7 @@ import org.apache.commons.lang3.StringUtils;
  *
  * @author laim0nas100
  */
-public class DownloadArtifact {
+public class DownloadArtifact{
     private String uri;
     private String relativePath;
     public DownloadArtifact(String uri, String relativePath){
@@ -54,6 +54,11 @@ public class DownloadArtifact {
             }
         }
         return false;
+    }
+
+    @Override
+    public String toString() {
+        return "DownloadArtifact{" + "uri=" + uri + ", relativePath=" + relativePath + '}';
     }
     
     

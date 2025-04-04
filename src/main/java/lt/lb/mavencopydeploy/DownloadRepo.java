@@ -64,7 +64,7 @@ public class DownloadRepo {
         Objects.requireNonNull(arg.domainSrc);
 
         arg.downloadPath = StringUtils.appendIfMissing(arg.downloadPath, Java.getFileSeparator());
-        arg.domainDest = StringUtils.appendIfMissing(arg.domainDest, "/");
+        arg.domainSrc = StringUtils.appendIfMissing(arg.domainSrc, "/");
 
         RepoArgs src = RepoArgs.fromSource(arg);
 
@@ -75,7 +75,6 @@ public class DownloadRepo {
             clientSrcs = new ClientSetup3(src.getCred());
         } else if (arg.versionSource == 2) {
             clientSrcs = new ClientSetup2(src.getCred());
-            arg.domainSrc = StringUtils.appendIfMissing(arg.domainSrc, "/");
         } else {
             throw new IllegalArgumentException("Only supported versions are 2,3");
         }
@@ -94,7 +93,12 @@ public class DownloadRepo {
             String relativePath = arg.downloadPath + StringUtils.removeStart(artifactDown.getRelativePath(), Java.getFileSeparator());
             final Path path = Paths.get(relativePath);
             UncheckedConsumer<Job> createDirs = k -> {
-                Files.createDirectories(path);
+                Path parent = path.getParent();
+                if(!Files.isDirectory(parent)){
+                    Files.createDirectories(parent);
+                }
+                Files.deleteIfExists(path);
+                
             };
 
             UncheckedConsumer<Job> download = k -> {
@@ -113,6 +117,7 @@ public class DownloadRepo {
 
         }
         executor.shutdownAndWait(100, TimeUnit.DAYS);
+        DLog.print("Close clients");
         clientSrcs.close();
     }
 }

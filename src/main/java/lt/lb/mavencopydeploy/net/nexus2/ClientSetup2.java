@@ -1,21 +1,12 @@
 package lt.lb.mavencopydeploy.net.nexus2;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
-import lt.lb.commons.F;
 import lt.lb.mavencopydeploy.RepoArgs.Cred;
 import lt.lb.mavencopydeploy.net.BaseClient;
-import okhttp3.ConnectionPool;
-import okhttp3.Credentials;
-import okhttp3.Interceptor;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.Response;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -40,18 +31,6 @@ public class ClientSetup2 extends BaseClient {
     public ClientSetup2(Cred cred) {
         super(cred);
         docBuilderFactory = DocumentBuilderFactory.newInstance();
-        String credentials = Credentials.basic(cred.user, cred.pass);
-        Interceptor interceptor = new Interceptor() {
-            @Override
-            public Response intercept(Interceptor.Chain chain) throws IOException {
-                Request request = chain.request();
-                Request authenticatedRequest = request.newBuilder()
-                        .header("Authorization", credentials).build();
-                return chain.proceed(authenticatedRequest);
-            }
-        };
-        connectionPool = new ConnectionPool(Integer.MAX_VALUE, 5000, TimeUnit.DAYS);
-        client = new OkHttpClient.Builder().connectionPool(connectionPool).addInterceptor(interceptor).build();
     }
 
     public static ArrayList<Node> toList(NodeList nodes) {

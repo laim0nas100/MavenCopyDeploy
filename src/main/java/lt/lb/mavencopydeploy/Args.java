@@ -77,6 +77,12 @@ public class Args {
     @Parameter(names = {"--help", "-help", "help", "?"}, help = true)
     public boolean help;
 
+    @Override
+    public String toString() {
+        return "Args{" + "mode=" + mode + ", includedExt=" + includedExt + ", excludedExt=" + excludedExt + ", versionSource=" + versionSource + ", versionDest=" + versionDest + ", userSrc=" + userSrc + ", paswSrc=" + paswSrc + ", userDst=" + userDst + ", paswDst=" + paswDst + ", domainSrc=" + domainSrc + ", domainDest=" + domainDest + ", idSrc=" + idSrc + ", idDest=" + idDest + ", localPath=" + localPath + ", maxTemp=" + maxTemp + ", threadCount=" + threadCount + ", downloadPath=" + downloadPath + ", disableLog=" + disableLog + ", help=" + help + '}';
+    }
+
+    
     
     
     public static <T extends Enum<T>> List<String> enumNames(Class<T> cls) {
