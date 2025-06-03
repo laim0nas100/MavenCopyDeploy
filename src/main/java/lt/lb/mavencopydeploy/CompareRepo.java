@@ -13,7 +13,7 @@ import java.util.concurrent.FutureTask;
 import java.util.stream.Collectors;
 import lt.lb.commons.DLog;
 import lt.lb.commons.Java;
-import lt.lb.commons.io.TextFileIO;
+import lt.lb.commons.io.text.TextFileIO;
 import lt.lb.commons.iteration.For;
 import lt.lb.commons.iteration.streams.MakeStream;
 import lt.lb.commons.threads.executors.FastExecutor;

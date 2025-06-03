@@ -9,7 +9,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
         <maven.compiler.target>1.8</maven.compiler.target>
-        <commons-lb.version>2022.10v5</commons-lb.version>
+        <commons-lb.version>2025.06v1</commons-lb.version>
         <commons-lb.dir>com.github.laim0nas100.Commons</commons-lb.dir>
 <!--        <commons-lb.version>local-jar</commons-lb.version>
         <commons-lb.dir>lt.lb.Commons</commons-lb.dir>-->
@@ -31,12 +31,6 @@
             <artifactId>commonslb-io</artifactId>
             <version>${commons-lb.version}</version>
         </dependency>
-        <dependency>
-            <groupId>${commons-lb.dir}</groupId>
-            <artifactId>commonslb-javafx</artifactId>
-            <version>${commons-lb.version}</version>
-        </dependency>
-        
         <dependency>
             <groupId>com.github.laim0nas100</groupId>
             <artifactId>JobSystem</artifactId>
