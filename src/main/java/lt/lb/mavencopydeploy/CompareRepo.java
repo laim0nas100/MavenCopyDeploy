@@ -41,7 +41,7 @@ public class CompareRepo {
 
     public static final void compare(Args arg) throws InterruptedException, ExecutionException, FileNotFoundException, UnsupportedEncodingException, IOException {
 
-        List<ArtifactDiff> compare = compareTruly(arg);
+        List<ArtifactDiff> compare = comapreToList(arg);
 //        .filter(art -> !art.exclude(arg.excludedExt) && art.include(arg.includedExt))
         String finalPath = StringUtils.appendIfMissing(arg.localPath, Java.getFileSeparator()) + "compare.txt";
 
@@ -60,7 +60,7 @@ public class CompareRepo {
 
     }
 
-    static final List<ArtifactDiff> compareTruly(Args arg) throws InterruptedException, ExecutionException, IOException {
+    public static final List<ArtifactDiff> comapreToList(Args arg) throws InterruptedException, ExecutionException, IOException {
         RepoArgs source = RepoArgs.fromSource(arg);
         
 

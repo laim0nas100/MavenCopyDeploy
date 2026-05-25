@@ -1,7 +1,8 @@
 package lt.lb.mavencopydeploy;
 
-import java.util.LinkedHashMap;
-import java.util.Map;
+import com.github.laim0nas100.jobsystem.events.JobEventListener;
+import lt.lb.commons.DLog;
+import lt.lb.commons.F;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -76,10 +77,10 @@ public class RepoArgs {
         public String origin;
         public String host;
         public String user, pass;
-        
+
         public String cookie;
         public String repoID;
-        
+
         public Cred(String user, String pass) {
             this.user = user;
             this.pass = pass;
@@ -87,6 +88,22 @@ public class RepoArgs {
 
         public Cred() {
         }
-        
+
     }
+
+    public static JobEventListener listenerStart = (job, name, data) -> {
+        DLog.print("Start job " + job.id);
+    };
+
+    public static JobEventListener listenerStop = (job, name, data) -> {
+        DLog.print("End job " + job.id);
+    };
+    public static JobEventListener listenerError = (job, name, data) -> {
+        data.ifPresent(err -> {
+            if (err instanceof Throwable) {
+                Throwable th = F.cast(err);
+                DLog.print("Error: " + th.getClass().getName() + " " + th.getMessage());
+            }
+        });
+    };
 }

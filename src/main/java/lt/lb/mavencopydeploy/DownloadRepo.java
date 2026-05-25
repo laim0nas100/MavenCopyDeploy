@@ -15,13 +15,12 @@ import lt.lb.commons.Java;
 import lt.lb.commons.iteration.ReadOnlyIterator;
 import lt.lb.commons.threads.executors.FastWaitingExecutor;
 import lt.lb.commons.threads.sync.WaitTime;
-import lt.lb.jobsystem.Dependencies;
-import lt.lb.jobsystem.Job;
-import lt.lb.jobsystem.JobExecutor;
-import lt.lb.jobsystem.ScheduledJobExecutor;
-import lt.lb.jobsystem.events.JobEvent;
-import lt.lb.jobsystem.events.JobEventListener;
-import lt.lb.jobsystem.events.SystemJobEventName;
+import com.github.laim0nas100.jobsystem.Dependencies;
+import com.github.laim0nas100.jobsystem.Job;
+import com.github.laim0nas100.jobsystem.JobExecutor;
+import com.github.laim0nas100.jobsystem.ScheduledJobExecutor;
+import com.github.laim0nas100.jobsystem.events.JobEventListener;
+import com.github.laim0nas100.jobsystem.events.SystemJobEventName;
 import lt.lb.mavencopydeploy.net.BaseClient;
 import lt.lb.mavencopydeploy.net.DownloadArtifact;
 import lt.lb.mavencopydeploy.net.nexus2.ClientSetup2;
@@ -35,27 +34,11 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class DownloadRepo {
 
-    static JobEventListener listenerStart = (JobEventListener) (JobEvent event) -> {
-        DLog.print("Start job " + event.getCreator().getUUID());
-    };
-
-    static JobEventListener listenerStop = (JobEventListener) (JobEvent event) -> {
-        DLog.print("End job " + event.getCreator().getUUID());
-    };
-    static JobEventListener listenerError = (JobEvent event) -> {
-        event.getData().ifPresent(err -> {
-            if (err instanceof Throwable) {
-                Throwable th = F.cast(err);
-                DLog.print("Error: " + th.getClass().getName() + " " + th.getMessage());
-            }
-        });
-    };
-
     private static void jobDecorate(Job... jobs) {
         for (Job j : jobs) {
-            j.addListener(SystemJobEventName.ON_EXECUTE, listenerStart);
-            j.addListener(SystemJobEventName.ON_DONE, listenerStop);
-            j.addListener(SystemJobEventName.ON_EXCEPTIONAL, listenerError);
+            j.addListener(SystemJobEventName.ON_EXECUTE, RepoArgs.listenerStart);
+            j.addListener(SystemJobEventName.ON_DONE, RepoArgs.listenerStop);
+            j.addListener(SystemJobEventName.ON_EXCEPTIONAL, RepoArgs.listenerError);
         }
     }
 
@@ -94,11 +77,11 @@ public class DownloadRepo {
             final Path path = Paths.get(relativePath);
             UncheckedConsumer<Job> createDirs = k -> {
                 Path parent = path.getParent();
-                if(!Files.isDirectory(parent)){
+                if (!Files.isDirectory(parent)) {
                     Files.createDirectories(parent);
                 }
                 Files.deleteIfExists(path);
-                
+
             };
 
             UncheckedConsumer<Job> download = k -> {

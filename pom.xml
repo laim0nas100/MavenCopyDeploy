@@ -34,7 +34,7 @@
         <dependency>
             <groupId>com.github.laim0nas100</groupId>
             <artifactId>JobSystem</artifactId>
-            <version>01b3ee6d71190a73f3512afdd55d142cb1368523</version>
+            <version>2026.05v9</version>
         </dependency>
         
         <dependency>
